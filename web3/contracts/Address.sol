@@ -74,8 +74,6 @@ library Address {
                     let returndata_size := mload(returndata)
                      revert(add(32, returndata), returndata_size)
                  }
-
-
                  }else{
                      revert (errorMessage);
                  }
