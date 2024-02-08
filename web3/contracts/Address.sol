@@ -4,48 +4,54 @@ pragma solidity ^0.8.9;
 
 library Address {
 
-   function isContract(address account) internal view returns(bool){
-       return account.code.length > 0;
-      
-   }
+        function isContract(address account) internal view returns(bool){
+                return account.code.length > 0;
+                
+        }
 
-   function sendValue(address payable recipient, uint256 amount) internal {
-      require (address(this).balance >= amount, "Address: Insufficient balance");
+    function sendValue(address payable recipient, uint256 amount) internal {
+                require (address(this).balance >= amount, "Address: Insufficient balance");
    
-     (bool success, ) = recipient.call{value: amount}("");
+    (bool success, ) = recipient.call{value: amount}("");
      require(success, "Address: unable to send value, recipient may have reverted");
-   
+
    }
 
    function functionCall(address target, bytes memory data) internal returns (bytes memory) {
-      return functionCall(target, data, "Address: low level call failed");
-}
+       return functionCall(target, data, "Address: low level call failed");
+   }
 
-// function functionCall(address target, bytes memory data, string memory errorMessage) internal returns (bytes memory) {
-//     (bool success, bytes memory returndata) = target.call(data);
-//     require(success, errorMessage);
-//     return returndata;
-// }
-  function functionCall(address target, bytes memory data, uint256 value)
-   internal returns (bytes memory){
-     return functionCallwithValue(target, data, value, "Address: low level call with value failed");
-   }  
-   
 
-   function functionCallwithValue( address target, bytes memory data, uint256 value)
-   internal returns (bytes memory){
-    require(address(this).balance >= value, "Address: insufficient balance for call");
-    require (isContract(target), "Address: call to non-contract");
-    (bool success, bytes memory returndata) = target.call{value: value};
-      return verifyCallResult(success, returndata, errorMessage);
+    function functionCall(address target, bytes memory data, string memory errorMessage)
+    
+    internal returns (bytes memory){
+        return functionCallwithValue(target, data, 0, errorMessage);
+    }  
+    
+   function functionCallwithValue( address target, bytes memory data, uint256 value, string memory errorMessage)
+    
+    internal returns (bytes memory){
+                
+                require(address(this).balance >= value, "Address: insufficient balance for call");
+                
+                require (isContract(target), "Address: call to non-contract");
+                
+                 (bool success, bytes memory returndata) = target.call{value: value}(data);
+       
+       return verifyCallResult(success, returndata, errorMessage);
 
    }
 
+
    function functionStaticCall(address target, bytes memory data, string memory errorMessage)
+   
    internal view returns (bytes memory)
+   
    {
      require(isContract(target), "Address: static call to non-contract");
+      
       (bool success, bytes memory returndata) = target.staticcall(data);
+       
        return verifyCallResult(success, returndata, errorMessage);
 
    }
@@ -77,4 +83,3 @@ library Address {
          }
      }
 
-}
