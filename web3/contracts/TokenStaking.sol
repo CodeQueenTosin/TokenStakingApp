@@ -233,10 +233,11 @@ function updateStakingEndDate(uint256 newDate) external onlyOwner{
      function claimReward() external nonReentrant whenTreasuryHasBalance(_users[msg.sender].rewardAmount)
       _calculateRewards(msg.sender);
 
-      uint256 rewardAmount = _users[msg.sender].rewardAmount;
+  uint256 rewardAmount = _users[msg.sender].rewardAmount;
 
-      require (rewardAmount > 0, "TokenStaking: no reward to claim");
+    require(rewardAmount > 0, "TokenStaking: no reward to claim");
        
+
       require (IERC20(_tokenAddress).transfer(msg.sender, rewardAmount), "TokenStaking: failed to transfer");
        
        _users[msg.sender].rewardAmount = 0;
