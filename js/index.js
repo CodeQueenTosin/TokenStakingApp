@@ -127,29 +127,330 @@ async function loadInitialData(sClass){
                  .forEach(function(element){
                     element.innerHTML = `${isStakingPausedText}`;
                  });
+
+                 if(currentDate > startDate && currentDate < endDate){
+                      const ele = doucment.getElementById("countdown-time-value");
+                      generateCountDown(ele, endDate);
+
+                      document.getElementById("countdown-title-value").innerHTML = `Staking Ends in`;
+                 }
         
+                 if(currentDate < startDate){
+                      const ele = document.getElementById("countdown-time-value")
+                       generateCountDown(ele, endDate);
+
+                       document.getElementById("countdown-title-value").innerHTML = `Staking starts in`;
+                 }
+
+
+                 document.querySelectorAll(".apy-value").forEach(function(element){
+                    element.innerHTML = `${cApy} %`;
+                 });
+                }catch(error){
+                     console.log(error);
+                     notyf.error(`Unable to fetch data from ${SELECT_CONTRACT[_NETWORK_ID].network_name} !\n Please refresh this page`);
+                }
+
+            }
+
+
+         function generateCountDown (ele, claimDate){
+              clearInterval(countDownGlobal);
+
+              var countDownDate = new Date (claimDate).getTime();
+
+              countDownGlobal = setInterval (function (){
+                   var now = new Date().getTime();
+
+                   var distance = countDownDate - now;
+
+                   var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                   
+                   var hours = Math.floor(distance %(1000 * 60 * 60 * 24)) / (1000 * 60 * 60);
+
+                   var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+
+                   var seconds = Math.floor((distance %(1000 * 60))/ 1000);
+
+                   //display the result in the elememt
+                   ele.innerHTML = days + "d" + hours + "h" + minutes + "m" + seconds + "s";
+
+                 //If the countdown finishes write some text
+
+                 if(distance < 0){
+                      clearInterval(countDownGlobal);
+                      ele.html("Refresh Page");
+                 }
+                }, 1000);
 
 
 
+              
+            }
+              
+              
+      async function connectMe(_provider){
+          try {
+              let_comn_res = await commonProviderDetector(_provider);
+              console.log(_comn_res);
+              if(!_comn_res) {
+                  console.log("Please connect");
+
+              }else{
+                 let sClass = getSelectedTab();
+                 console.log(sClass);
+
+              }
+
+          }catch(error){
+              notyf.error(error.message);
+          }
+      }
+
+      async function stackTokens(){
+          try{
+             let nTokens = document.getElementById ("amount-to-stack-value-new").value;
+
+             if(!nTokens){
+                 return;
+             }
+
+             if(isNaN(nTokens) || nTokens ==0 || Number(nTokens) < 0){
+                  console.log(`Invalid token Amount!`);
+                  return;
+             }
+
+             nTokens = Number(nTokens);
+
+             let tokenToTransfer = addDecimal(nTokens, 18);
+             console.log("tokenTransfer", tokenToTransfer);
+
+             let balMainUser = await oContractToken.methods;
+
+             console.log("balMainUser", balMainUser);
+             
+             if(balMainUser < nTokens){
+                  notyf.error(`Insufficient Tokens on ${SELECT_CONTRACT[NETWORK_ID].name} !\n Please buy some tokens first`);
+             
+
+                  return;
+                }
+
+                let sClass = getSelectedTab(contractCall);
+
+                console.log(sClass);
+                
+                let balMainAllowance = await oContractToken.methods.allowance(currentAddress, SELECT_CONTRACT[_NETWORK_ID].STACKING[sClass].address).call();
+  
+
+                if(Number(balMainAllowance < Number(tokenToTransfer))){
+                     approveTokenSpend(tokenToTransfer, sClass);
+                }else{
+                     stackTokenMain(tokenToTransfer, sClass);
+                }
+                }catch(error){
+                     console.log(error);
+                     notyf.dismiss(notification);
+                     notyf.error(formatEthErrorMsg(error));
+                    
+                }
+                
+
+            async function approveTokenSpend(_mint_fee_wei, sClass){
+                  let gasEstimation;
+
+                  try{
+                      gasEstimation = await oContractToken.methods.approve(SELECT_CONTRACT[_NETWORK_ID].STACKING[sClass].address, _mint_fee_wei).estimateGas({
+                        from: currentAddress,
+                      });
+                  } catch (error){
+                      console.log(error);
+                      notyf.error(formatEthErrorMsg(error));
+                      return;
+                  }
+
+                  oContractToken.methods.approve(SELECT_CONTRACT[_NETWORK_ID].STACKING[sClass].address, _mint_fee_wei)
+                   .send({
+                       from: currentAddress,
+                       gas: gasEstimation,
+                   })
+                    .on("transactionHash", (hash) => {
+                          console.log("Transaction Hash:", hash);
+                    })
+                    .on("receipt", (receipt) => {
+                         console.log(receipt);
+                          stackTokenMain(_mint_fee_wei);
+                    })
+                    .catch((error) => {
+                          console.log(error);
+                          notyf.error(formatEthErrorMsg(error));
+                          return;
+                    });
+            }
+             
+         
+            async function stackTokenMain(_amount_wei, sClass){
+                  let gasEstimation;
+
+                  let oContractStacking = getContractObj(sClass);
+
+                  try{
+                      gasEstimation = await oContractStacking.methods.stake(_amount_wei).estimateGas({
+                          from: currentAddress,
+                           
+                      });
+
+                  } catch(error){
+                      console.log(error);
+                      notyf.error(formatEthErrorMsg(error));
+                      return;
 
 
+                  }
 
+                  oContractStacking.methods.stake(_amount_wei).send({
+                       from: currentAddress,
+                        gas: gasEstimation,
+                  }).on("receipt", (receipt)=> {
+                    console.log(receipt);
+                    const receiptObj ={
+                        token: _amount_wei,
+                        from: receipt.to,
+                        to: receipt.to,
+                        blockHash: receipt.blockHash,
+                        blockNumber: receipt.blockNumber,
+                        cummulativeGasUsed: receipt.cummulativeGasUsed,
+                        effectiveGasPrice: receipt.effectiveGasPrice,
+                        gasUsed: receipt.gasUsed,
+                        status: receipt.status,
+                        transactionHash: receipt.transactionHash,
+                        type: receipt.type,
 
+                    };
 
+                    let transactionHistory = [];
 
+                    const allUserTransaction = localStorage.getItem("transactions");
 
+                    if(allUserTransaction){
+                        transactionHistory = JSON.parse(localStorage.getItem("transactions"));
+                         transactionHistory.push(receiptObj);
+                         localStorage.setItem("transactions", JSON.stringify(transactionHistory));
+                         
+                    }else{
+                         transactionHistory.push(receiptObj);
+                         localStorage.setItem("transactions", JSON.stringify(transactionHistory));
+                    }
 
+                  })
 
+               
+             
+            }
 
-
-
-
-
+            console.log(allUserTransaction);
+            window.location.href = "http://127.0.0.1:5500/analytic.html"
+            .on("transactionHash", (hash) => {
+               console.log("Transaction Hash", hash);
+            })
+            .catch((error)=>{
+                console.log(error);
+                notyf.error(formatEthErrorMsg(error));
+                return;
+            });
     
-    }
-    catch {
+        
+        }
 
-    }   
+        async function unstackTokens(){
+             try{
+                 let nTokens = document.getElementById("amount-to-unstack-value");
+                 if(!nTokens){
+                     return;
+                 }
 
-}
+                 if(isNaN(nTokens) || nTokens == 0 || Number(nTokens) < 0){
+                     notyf.error(`Invalid token amount`);
+                     return;
+
+                 }
+                 nTokens = Number(nTokens);
+                 let tokenToTransfer = addDecimal(nTokens, 18);
+
+                 let oContractStacking = getContractObj(sClass);
+
+                 let balMainUser = await oContractStacking.methods.getUser(currentAddress).call();
+
+                 balMainUser = Number(balMainUser.stakeAmount) / 10 ** 18;
+
+                 if(balMainUser < nTokens){
+                      notyf.error(`Insufficient staked tokens on ${SELECT_CONTRACT[_NETWORK_ID].network_name} !\n  Insufficeitn staked tokens on ${SELECT_CONTRACT[_NETWORK_ID].network_name}`);
+                      return;
+
+                 }
+
+                 unstackTokenMain(tokenToTransfer, oContractStacking,sClass); 
+                }catch(error){
+                        console.log(error);
+                        notyf.dismiss(notification);
+                        notyf.error(formatEthErrorMsg(error));
+                    }
+                }
+
+                
+                async function unstackTokenMain(_amount_wei, oContractStacking, sClass)
+                {
+                    let gasEstimation;
+
+                    try{
+                        gasEstimation = await oContractStacking.methods.unstake(_amount_wei)
+                        .estimateGas({
+                             from: currentAddress,
+
+                        });
+
+                    }catch(error){
+                         console.log(error);
+                         notyf.error(formatEthErrorMsg(error));
+                         return;
+                    }
+
+                    onContractStacking.methods.unstake(_amount_wei).send({
+                         from: currentAddress,
+                          gas: gasEstimation,
+                    }).on("receipt", (receipt)=>{
+                          console.log(receipt);
+                          const receiptObj = {
+                              token: _amount_wei,
+                              from: receipt.from,
+                              to: receipt.to,
+                              blockHash: receipt.blockHash,
+                              blockNumber: receipt.blockNumber,
+                              cummulativeGasUsed: receipt.cummulativeGasUsed,
+                              effectiveGasPrice: receipt.effectiveGasPrice,
+                              gasUsed: receipt.gasUsed,
+                              status: receipt.status,
+                              transactionHash: receipt.transactionHash,
+                              type: receipt.type,
+                          };
+
+                          let transactionHistory = [];
+                           
+
+                    })
+                }
+
+
+
+      
+
+
+
+
+
+
+
+
+
+
 
