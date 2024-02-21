@@ -435,10 +435,121 @@ async function loadInitialData(sClass){
                           };
 
                           let transactionHistory = [];
-                           
 
-                    })
-                }
+                          const allUserTransaction = localStorage.getItem("transactions");
+                          if(allUserTransaction) {
+                              transactionHistory = JSON.parse(localStorage.getItem("transactions"));
+                              transactionHistory.push(receiptObj);
+                              localStorage.setItem("transactions", JSON.stringify(transactionHistory));
+
+                          } else {
+                            transactionHistory.push(receiptObj);
+                            localStorage.setItem("transactions", JSON.stringify(transactionHistory));
+
+                          }
+
+                          window.location.href = "https://127.0.0.1:5500/analytic.html";
+                        })
+                        .on("transactionHash", (hash) =>{
+                             console.log("Transaction Hash:", hash);
+                        })
+
+                        .catch((error) => {
+                            console.log(error);
+                            notyf.error(formatEthErrorMsg(error));
+                            return;
+                        });
+
+
+
+                    }
+
+              async function claimTokens(){
+                  try{
+                     let sClass = getSelectedTab(contractCall);
+                     let oContractStacking  = getContractObj(sClass);
+                     let rewardBal = await oContractStacking.methods
+                       .getUserEstimatedRewards()
+                       .call({ from: currentAddress });
+                        rewardBal = Number(rewardBal);
+                        console.log("rewardBal", rewardBal);
+                        if(!rewardBal){
+                             notyf.dismiss(notification);
+                             notyf.error(`insufficient reward token to claim!`);
+                             return;
+                        }
+
+                        claimTokenMain(oContractStacking, sClass);
+                    }catch(error){
+                         console.log(error);
+                         notyf.dismiss(notification);
+                         notyf.error(formatEthErrorMsg(error));
+
+                    }
+                  }
+                
+                  async function claimTokenMain(oContractStacking, sClass){
+                       let gasEstimation;
+
+
+                       try {
+                          gasEstimation = await oContractStacking.methods.claimReward().estimateGas({
+                              from: currentAddress,
+                          });
+                          console.log("gasEstimation", gasEstimation);
+                       }catch (error) {
+                          console.log(error);
+                          notyf.error(formatEthErrorMsg(error));
+                          return;
+                       }
+
+                       onContractStacking.methods
+                        .claimReward()
+                        .send({
+                             from: currentAddress,
+                             gas: gasEstimation,
+                        })
+                        .on("receipt", (receipt) => {
+                              console.log(receipt);
+                              const receiptObj = {
+                                  from: receipt.from,
+                                  to: receipt.to,
+                                  blockHash:  receipt.blockHash,
+                                  blockNumber: receipt.blockNumber,
+                                  cummulativeGasUsed: receipt.cummulativeGasUsed,
+                                  effectiveGasPrice: receipt.effectiveGasPrice,
+                                  gasUsed: receipt.gasUsed,
+                                  status: receipt.status,
+                                  transactionHash: receipt.transactionHash,
+                                  type: receipt.type,
+
+                              };
+
+                              let transactionHistory = [];
+
+                              const allUserTransaction = localStorage.getItem("transactions");
+                              if(allUserTransaction){
+                                  transactionHistory = JSON.parse(localStorage.getItem("transactions"));
+                                  transactionHistory.push(receiptObj);
+                                  localStorage.setItem("transactions", JSON.stringify(transactionHistory));
+                              }else {
+                                    transactionHistory.push(receiptObj);
+                                    localStorage.setItem("transactions", JSON.stringify(transactionHistory));
+                              }
+
+                              window.location.href = "http://127.0.0.1:5500/analytic.html";
+
+                        })
+                              .on("transactionHash", (hash) => {
+                                  console.log("Transaction Hash: ", hash);
+                              })
+                              .catch((error) => {
+                                  console.log(error);
+                                  notyf.error(formatEthErrorMsg(error));
+                                  return;
+                              });
+                  }
+
 
 
 
