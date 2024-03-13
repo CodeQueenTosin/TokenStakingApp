@@ -98,7 +98,7 @@ contract TokenStaking is Ownable, ReentrancyGuard, Initializable {
         return _minimumStakingAmount;
      }
 
-     function getMaxStakingTokenLimit() external view returns (uint356){
+     function getMaxStakingTokenLimit() external view returns (uint256){
           return _maxStakeTokenLimit;
      } 
 
@@ -110,7 +110,7 @@ contract TokenStaking is Ownable, ReentrancyGuard, Initializable {
          return _stakeDays;
      }
 
-     function getEarlyUnstakeFeePercentage() external view returns (uint256) {
+     function getEarlyUnstakeFeePercentage() external view returns (bool) {
          return _isStakingPaused;
      }
 
@@ -127,7 +127,7 @@ contract TokenStaking is Ownable, ReentrancyGuard, Initializable {
      return IERC20(_tokenAddress).balanceOf(address(this))- _totalStakedTokens;
   }
 
-  function getUser(address useraddress) external view returns (User nemory){
+  function getUser(address useraddress) external view returns (User memory){
       return _users[useraddress];
   }
 
@@ -230,29 +230,25 @@ function updateStakingEndDate(uint256 newDate) external onlyOwner{
        }
 
     /// Function to Claim Rewards
-     function claimReward() external nonReentrant whenTreasuryHasBalance(_users[msg.sender].rewardAmount)
-      _calculateRewards(msg.sender);
 
-  uint256 rewardAmount = _users[msg.sender].rewardAmount;
 
-    require(rewardAmount > 0, "TokenStaking: no reward to claim");
-       
-
-      require (IERC20(_tokenAddress).transfer(msg.sender, rewardAmount), "TokenStaking: failed to transfer");
-       
-       _users[msg.sender].rewardAmount = 0;
-       _users[msg.sender].rewardsClaimedSoFar += rewardAmount;
-
-       emit ClaimReward(msg.sender, rewardAMount);
+    function claimReward() external nonReentrant whenTreasuryHasBalance(_users[msg.sender].rewardAmount) {
+            _calculateRewards(msg.sender);
+            uint256 rewardAmount = _users[msg.sender].rewardAmount;
+            require(rewardAmount > 0, "TokenStaking: no reward to claim");
+            require(IERC20(_tokenAddress).transfer(msg.sender, rewardAmount), "TokenStaking: failed to transfer");
+            _users[msg.sender].rewardAmount = 0;
+            _users[msg.sender].rewardsClaimedSofar += rewardAmount;
+            emit ClaimReward(msg.sender, rewardAmount);
+    }
 
        // End Of User Methods
 
-       function _calculateRewards(address _user) private {
-          (uint256 userReward, uint256 currentTime) = _getUserEstimatedRewards(_user);
+       function _calculateRewards(address _user) private {(uint256 userReward, uint256 currentTime) = _getUserEstimatedRewards(_user);
          
-         _users[_user].rewardAmount += userReward;
+          _users[_user].rewardAmount += userReward;
           
-          _users[_user].lastRewardCalculationTime = currentTime;
+           _users[_user].lastRewardCalculationTime = currentTime;
 
        }
 
