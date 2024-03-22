@@ -1,11 +1,10 @@
-//Function Call
-
 loadInitialData("sevenDays");
 
 connectMe("metamask_wallet");
 
 function connectWallet() {}
  
+
 function openTab (event, name){
      console.log(name);
      contractCall = name;
@@ -14,12 +13,21 @@ function openTab (event, name){
 }
 
 async function loadInitialData(sClass){
+    let notification;
+
      console.log(sClass);
      try{
         clearInterval(countDownGlobal);
-        let cObj = new web3Main.eth.Contract(SELECT_CONTRACT[_NETWORK_ID].STACKING.abi, SELECT_CONTRACT[_NETWORK_ID].STACKING[sClass].address);
+        let cObj = new web3Main.eth.Contract(
+            SELECT_CONTRACT[_NETWORK_ID].STACKING.abi, 
+            SELECT_CONTRACT[_NETWORK_ID].STACKING[sClass].address);
+
+            //GET ID ELEMENT DATA
         
+        //let totalUsers = await cObj.methods.getTotalUsers().call();;
+
         let totalUsers = await cObj.methods.getTotalUsers().call();
+        //let totalUsers = 40;
 
         let cApy = await cObj.methods.getAPY().call();
 
@@ -36,29 +44,33 @@ async function loadInitialData(sClass){
         localStorage.setItem("User", JSON.stringify(user));
 
         let userDetailBal = userDetail.stakeAmount / 10 ** 18;
-        
+
+        document.getElementById("total-locked-user-token").innerHTML = `${userDetailBal}`;
         document.getElementById("num-of-stackers-value").innerHTML = `${totalUsers}`;
         document.getElementById("apy-value-feature").innerHTML = `${cApy} % `;
 
         //class element data
-
         let totalLockedTokens = await cObj.methods.getTotalStakedTokens().call();
         let earlyUnstakeFee = await cObj.methods.getEarlyUnstakeFeePercentage().call();
 
-        document.getElementById("total-locked-tokens-value").innerHTML = `${
-            totalLockedTokens /10 ** 18 }
-            ${SELECT_CONTRACT[NETWORK_ID].TOKEN.symbol}
-        }`;
+        document.getElementById("total-locked-tokens-value").innerHTML = `${ totalLockedTokens / 10 ** 18 
+         } ${SELECT_CONTRACT[_NETWORK_ID].TOKEN.symbol}`;
+
+        document.querySelectorAll(".early-unstake-fee-value")
+                .forEach(function(element){
+                    element.innerHTML = `${earlyUnstakeFee /100}%`;
+                });
 
         let minStakeAmount = await cObj.methods.getMinimumStakingAmount().call();
-        
+
+        //let minStakeAmount = 30;
+    
         minStakeAmount = Number(minStakeAmount);
         
         let minA;
 
         if(minStakeAmount){
-                minA = `${(minStakeAmount / 10 ** 18).toLocaleString()} ${
-                     SELECT_CONTRACT[_NETWORK_ID].TOKEN.symbol
+                minA = `${(minStakeAmount / 10 ** 18).toLocaleString()} ${SELECT_CONTRACT[_NETWORK_ID].TOKEN.symbol
                 }`;
             
         }else{
@@ -72,18 +84,23 @@ async function loadInitialData(sClass){
 
                 document.querySelectorAll(".Maximum-Staking-Amount")
                          .forEach(function(element){
-                         element.innerHTML = `${(1000000).toLocaleString()} ${
-                            SELECT_CONTRACT[NETWORK_ID].TOKEN.symbol
+                         element.innerHTML = `${(5000).toLocaleString()} ${
+                            SELECT_CONTRACT[_NETWORK_ID].TOKEN.symbol
                                            
                         }`;
                 });
        
         let isStakingPaused = await cObj.methods.getStakingStatus().call();
+        //let isStakingPaused = false;
         let isStakingPausedText;
 
         let startDate = await cObj.methods.getStakeStartDate().call();
-
+          
         startDate = Number(startDate) * 1000;
+
+        let endDate = await cObj.methods.getStakeEndDate().call();
+         
+        endDate = Number(endDate) * 1000;
 
         let stakeDays = await cObj.methods.getStakeDays().call();
 
@@ -96,27 +113,29 @@ async function loadInitialData(sClass){
 
         });
 
+        let rewardBal = await cObj.methods.getUserEstimatedRewards().call({from: currentAddress });
+      // let rewardBal =  500;
+
         document.getElementById("user-reward-balance-value").value = `Reward: ${
             rewardBal / 10 ** 18 }
-            ${SELECT_CONTRACT[_NETWORK_ID].TOKEN.symbol
-        }`
+            ${SELECT_CONTRACT[_NETWORK_ID].TOKEN.symbol}`
 
-        // USER TOKEN BALANCE
+       
         let balMainUser = currentAddress ? await oContractToken.methods.balanceOf(currentAddress).call() : "";
-        
+      
         balMainUser = Number(balMainUser) / 10 ** 18;
 
         document.getElementById("user-token-balance").innerHTML = `Balance: ${balMainUser}`;
 
-        let currentDate = new Date ().getTime ();
+        let currentDate = new Date ().getTime();
 
         if(isStakingPaused){
-             isStakingPausedText="Paused";
+             isStakingPausedText = "Paused";
 
-        }else if(currentDate < startDate){
+        }else if(currentDate < startDate) {
             isStakingPausedText = "Locked";
 
-        }else if (currentDate > endDate){
+        }else if (currentDate > endDate) {
             isStakingPausedText = "Ended";
 
         }else {
@@ -129,7 +148,7 @@ async function loadInitialData(sClass){
                  });
 
                  if(currentDate > startDate && currentDate < endDate){
-                      const ele = doucment.getElementById("countdown-time-value");
+                      const ele = document.getElementById("countdown-time-value");
                       generateCountDown(ele, endDate);
 
                       document.getElementById("countdown-title-value").innerHTML = `Staking Ends in`;
@@ -148,10 +167,29 @@ async function loadInitialData(sClass){
                  });
                 }catch(error){
                      console.log(error);
-                     notyf.error(`Unable to fetch data from ${SELECT_CONTRACT[_NETWORK_ID].network_name} !\n Please refresh this page`);
-                }
+                     
+                     notyf.error(`Unable to fetch data from  ${SELECT_CONTRACT[_NETWORK_ID].network_name} !\n Please refresh this page`);
+                     console.log("jjjjj");
+                
+                    }
 
             }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
          function generateCountDown (ele, claimDate){
@@ -191,7 +229,7 @@ async function loadInitialData(sClass){
               
       async function connectMe(_provider){
           try {
-              let_comn_res = await commonProviderDetector(_provider);
+              let _comn_res = await commonProviderDetector(_provider);
               console.log(_comn_res);
               if(!_comn_res) {
                   console.log("Please connect");
@@ -215,7 +253,7 @@ async function loadInitialData(sClass){
                  return;
              }
 
-             if(isNaN(nTokens) || nTokens ==0 || Number(nTokens) < 0){
+             if(isNaN(nTokens) || nTokens == 0 || Number(nTokens) < 0){
                   console.log(`Invalid token Amount!`);
                   return;
              }
@@ -223,16 +261,18 @@ async function loadInitialData(sClass){
              nTokens = Number(nTokens);
 
              let tokenToTransfer = addDecimal(nTokens, 18);
-             console.log("tokenTransfer", tokenToTransfer);
+             
+             console.log("tokenToTransfer", tokenToTransfer);
 
-             let balMainUser = await oContractToken.methods;
+            let balMainUser = await oContractToken.methods.balanceOf(currentAddress).call();
+            
+            balMainUser = Number(balMainUser)/ 10 ** 18;
 
              console.log("balMainUser", balMainUser);
              
              if(balMainUser < nTokens){
-                  notyf.error(`Insufficient Tokens on ${SELECT_CONTRACT[NETWORK_ID].name} !\n Please buy some tokens first`);
+                  notyf.error(`Insufficient Tokens on ${SELECT_CONTRACT[_NETWORK_ID].name} !\n Please buy some tokens first`);
              
-
                   return;
                 }
 
@@ -242,7 +282,6 @@ async function loadInitialData(sClass){
                 
                 let balMainAllowance = await oContractToken.methods.allowance(currentAddress, SELECT_CONTRACT[_NETWORK_ID].STACKING[sClass].address).call();
   
-
                 if(Number(balMainAllowance < Number(tokenToTransfer))){
                      approveTokenSpend(tokenToTransfer, sClass);
                 }else{
@@ -250,7 +289,7 @@ async function loadInitialData(sClass){
                 }
                 }catch(error){
                      console.log(error);
-                     notyf.dismiss(notification);
+                     //notyf.dismiss(notification);
                      notyf.error(formatEthErrorMsg(error));
                     
                 }
@@ -269,7 +308,9 @@ async function loadInitialData(sClass){
                       return;
                   }
 
-                  oContractToken.methods.approve(SELECT_CONTRACT[_NETWORK_ID].STACKING[sClass].address, _mint_fee_wei)
+                  oContractToken.methods.approve
+                  (SELECT_CONTRACT[_NETWORK_ID].STACKING[sClass].address, 
+                    _mint_fee_wei)
                    .send({
                        from: currentAddress,
                        gas: gasEstimation,
@@ -290,14 +331,14 @@ async function loadInitialData(sClass){
              
          
             async function stackTokenMain(_amount_wei, sClass){
-                  let gasEstimation;
+                  
+                let gasEstimation;
 
                   let oContractStacking = getContractObj(sClass);
-
-                  try{
+                  
+                  try {
                       gasEstimation = await oContractStacking.methods.stake(_amount_wei).estimateGas({
-                          from: currentAddress,
-                           
+                          from: currentAddress,  
                       });
 
                   } catch(error){
@@ -348,16 +389,16 @@ async function loadInitialData(sClass){
              
             }
 
-            console.log(allUserTransaction);
-            window.location.href = "http://127.0.0.1:5500/analytic.html"
-            .on("transactionHash", (hash) => {
-               console.log("Transaction Hash", hash);
-            })
-            .catch((error)=>{
-                console.log(error);
-                notyf.error(formatEthErrorMsg(error));
-                return;
-            });
+            //console.log(allUserTransaction);
+            // window.location.href = "http://127.0.0.1:5500/analytic.html"
+            // .on("transactionHash", (hash) => {
+            //    console.log("Transaction Hash", hash);
+            // })
+            // .catch((error)=>{
+            //     console.log(error);
+            //     notyf.error(formatEthErrorMsg(error));
+            //     return;
+            // });
     
         
         }
@@ -375,7 +416,10 @@ async function loadInitialData(sClass){
 
                  }
                  nTokens = Number(nTokens);
+
                  let tokenToTransfer = addDecimal(nTokens, 18);
+
+                 let sClass = getSelectedTab(contractCall);
 
                  let oContractStacking = getContractObj(sClass);
 
@@ -389,10 +433,10 @@ async function loadInitialData(sClass){
 
                  }
 
-                 unstackTokenMain(tokenToTransfer, oContractStacking,sClass); 
+                 unstackTokenMain(tokenToTransfer, oContractStacking, sClass); 
                 }catch(error){
                         console.log(error);
-                        notyf.dismiss(notification);
+                        //notyf.dismiss(notification);
                         notyf.error(formatEthErrorMsg(error));
                     }
                 }

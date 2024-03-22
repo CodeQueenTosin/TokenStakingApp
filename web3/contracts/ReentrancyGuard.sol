@@ -20,7 +20,7 @@ abstract contract ReentrancyGuard {
 
          _;
 
-         _status = _ENTERED;
+         _status = _NOT_ENTERED;
     }
 
 }

@@ -42,7 +42,7 @@ contract TokenStaking is Ownable, ReentrancyGuard, Initializable {
 
     uint256 _apyRate;
 
-    uint256 public constant PERCENTAGE_DENOMINATOR = 1000;
+    uint256 public constant PERCENTAGE_DENOMINATOR = 10000;
 
    uint256 public constant APY_RATE_CHANGE_THRESHOLD = 10;
 
@@ -56,7 +56,7 @@ contract TokenStaking is Ownable, ReentrancyGuard, Initializable {
 
   event ClaimReward(address indexed user, uint256 amount);
   
-  modifier whenTreasuryHasBalance(uint256 amount){ require(IERC20(_tokenAddress).balanceOf(address(this)) >= amount, "tOKENStaking: Insufficient funds in Treasury");
+  modifier whenTreasuryHasBalance(uint256 amount){ require(IERC20(_tokenAddress).balanceOf(address(this)) >= amount, "TokenStaking: Insufficient funds in Treasury");
                                   _;
   }
  
@@ -66,7 +66,8 @@ contract TokenStaking is Ownable, ReentrancyGuard, Initializable {
      uint256 stakeEndDate_,
      uint256 stakeDays_,
      uint256 earlyUnstakeFeePercentage_) 
-     public virtual initializer {__TokenStaking_init_unchained(owner_, tokenAddress_, apyRate_, minimumStakingAmount_, maxStakeTokenLimit_, stakeStartDate_, stakeEndDate_, stakeDays_, earlyUnstakeFeePercentage_);
+     public virtual initializer {__TokenStaking_init_unchained(owner_, 
+     tokenAddress_, apyRate_, minimumStakingAmount_, maxStakeTokenLimit_, stakeStartDate_, stakeEndDate_, stakeDays_, earlyUnstakeFeePercentage_);
      
      
      }
@@ -86,8 +87,7 @@ contract TokenStaking is Ownable, ReentrancyGuard, Initializable {
           _stakeStartDate = stakeStartDate_;
           _stakeEndDate = stakeEndDate_;
           _stakeDays = stakeDays_ * 1 days;
-          _earlyUnstakeFeePercentage = 
-          earlyUnstakeFeePercentage_;
+          _earlyUnstakeFeePercentage = earlyUnstakeFeePercentage_;
 
      } 
 
@@ -106,46 +106,71 @@ contract TokenStaking is Ownable, ReentrancyGuard, Initializable {
           return _stakeStartDate;
      }
 
-     function getTotalStakedTokens() external view returns(uint256){
-         return _stakeDays;
+     function getStakeEndDate() external view returns (uint256) {
+         return _stakeEndDate;
      }
 
-     function getEarlyUnstakeFeePercentage() external view returns (bool) {
-         return _isStakingPaused;
+     function getTotalStakedTokens() external view returns(uint256){
+         return _totalStakedTokens;
+     }
+
+   function getTotalUsers() external view returns (uint256){
+         return _totalUsers;
+   }
+
+   function getStakeDays () external view returns (uint256){
+        return _stakeDays;
+   }
+
+     function getEarlyUnstakeFeePercentage() external view returns (uint256) {
+         return _earlyUnstakeFeePercentage;
      }
 
      function getAPY() external view returns(uint256){
          return _apyRate;
      }
 
-  function getUserEstimatedRewareds() external view returns (uint256){
+    function getMinimumStakingAmount() external view returns (uint256){
+       return _minimumStakingAmount;
+    }
+
+  function getUserEstimatedRewards() external view returns (uint256){
       (uint256 amount, ) = _getUserEstimatedRewards(msg.sender);
        return _users[msg.sender].rewardAmount + amount;
   }
 
   function getWithdrawableAmount() external view returns(uint256){
-     return IERC20(_tokenAddress).balanceOf(address(this))- _totalStakedTokens;
+     return IERC20(_tokenAddress).balanceOf(address(this)) - _totalStakedTokens;
   }
 
   function getUser(address useraddress) external view returns (User memory){
       return _users[useraddress];
   }
 
+ function getStakingStatus() external view returns(bool){
+    return _isStakingPaused;
+  }
+
   function isStakeHolder(address _user) external view returns(bool){
       return _users[_user].stakeAmount !=0;
   }
+
+ function updateMinimumStakingAmount(uint256 newAmount) external onlyOwner {
+      _minimumStakingAmount = newAmount;
+ }
 
   function updateMaximumStakingAmount(uint256 newAmount) external onlyOwner {
       _maxStakeTokenLimit = newAmount;
   }
    
-function updateStakingEndDate(uint256 newDate) external onlyOwner{
+function updateStakingEndDate(uint256 newDate) external onlyOwner {
       _stakeEndDate = newDate;
 }
 
-// funtion updateEarlyUnstakeFeePercentage(uint256 newPercentage) external OnlyOwner{
+// function updateEarlyUnstakeFeePercentage(uint256 newPercentage) external OnlyOwner {
 //      _earlyUnstakeFeePercentage = newPercentage;
 // }
+
  function stakeForUser(uint256 amount, address user) external onlyOwner nonReentrant {
       _stakeTokens(amount, user);
 
@@ -170,13 +195,14 @@ function updateStakingEndDate(uint256 newDate) external onlyOwner{
        _stakeTokens(_amount, msg.sender);
  }
 
- function _stakeTokens(uint256 _amount, address user_)private{
+ function _stakeTokens(uint256 _amount, address user_) private {
       require(!_isStakingPaused, "TokenStaking: staking is paused");
+       
        uint256 currentTime = getCurrentTime();
        require (currentTime > _stakeStartDate, "TokenStaking: staking not started yet");
-       require (currentTime > _stakeEndDate, "TokenStaking: staking ended");
+       require (currentTime < _stakeEndDate, "TokenStaking: staking ended");
        require(_totalStakedTokens + _amount <= _maxStakeTokenLimit, "TokenStaking: max staking token limit reached");
-       require(_amount >0, "TokenStaking: stake amount can't be less than 0");
+       require(_amount > 0, "TokenStaking: stake amount can't be less than 0");
        require(_amount >= _minimumStakingAmount, "TokenStaking: stake amount must be greater than minimum amount allowed");
 
        if (_users[user_].stakeAmount !=0){
@@ -221,6 +247,7 @@ function updateStakingEndDate(uint256 newDate) external onlyOwner{
          _totalStakedTokens -= _amount;
 
          if(_users[user].stakeAmount == 0){
+            // delete the user
               _totalUsers -= 1;
          } 
 
@@ -244,7 +271,8 @@ function updateStakingEndDate(uint256 newDate) external onlyOwner{
 
        // End Of User Methods
 
-       function _calculateRewards(address _user) private {(uint256 userReward, uint256 currentTime) = _getUserEstimatedRewards(_user);
+       function _calculateRewards(address _user) private {(uint256 userReward, uint256 currentTime) = 
+       _getUserEstimatedRewards(_user);
          
           _users[_user].rewardAmount += userReward;
           
@@ -265,7 +293,8 @@ function updateStakingEndDate(uint256 newDate) external onlyOwner{
 
           uint256 totalStakedTime = currentTime - userTimeStamp;
 
-          userReward += ((totalStakedTime * _users[_user].stakeAmount * _apyRate)/ 365 days)/ PERCENTAGE_DENOMINATOR;
+          userReward += ((totalStakedTime * _users[_user].stakeAmount * _apyRate)/ 365 days)/ 
+          PERCENTAGE_DENOMINATOR;
 
           return (userReward, currentTime);
 

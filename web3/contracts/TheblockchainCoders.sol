@@ -20,7 +20,11 @@ contract Theblockchaincoders {
     
     mapping(address => TokenHolderInfo) public tokenHolderInfos;
 
-    struct TokenHolderInfo{uint256 _tokenId; address _from; address _to; uint256 _totalToken; bool _tokenHolder;
+    struct TokenHolderInfo{uint256 _tokenId; 
+    address _from; 
+    address _to; 
+    uint256 _totalToken; 
+    bool _tokenHolder;
     }
     
    mapping(address => uint256) public balanceOf;
